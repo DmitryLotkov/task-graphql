@@ -63,7 +63,16 @@ export const createQueryScheme = ()  => {
         users: {
           type: new GraphQLList(UserType),
           resolve: async (_src, _, context: { prisma: PrismaClient }) => {
-            return context.prisma.user.findMany();
+            return context.prisma.user.findMany({
+              include: {
+                profile: {
+                  include: {
+                    memberType: true,
+                  },
+                },
+                posts: true,
+              },
+            });
           },
         },
         user: {
@@ -76,7 +85,9 @@ export const createQueryScheme = ()  => {
               where: { id: args.id },
               include: {
                 profile: {
-                  include: { memberType: true },
+                  include: {
+                    memberType: true,
+                  }
                 },
                 posts: true,
               },

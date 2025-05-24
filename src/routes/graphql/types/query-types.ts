@@ -4,10 +4,25 @@ import {
   GraphQLNonNull,
   GraphQLFloat,
   GraphQLInt,
-  GraphQLBoolean, GraphQLList, GraphQLString,
+  GraphQLBoolean, GraphQLList, GraphQLString, GraphQLFieldConfigMap,
 } from 'graphql/index.js';
 import { UUIDType } from './uuid.js';
 import { PrismaClient, User, Profile } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+
+const userWithEverything = Prisma.validator<Prisma.UserDefaultArgs>()({
+  include: {
+    profile: {
+      include: {
+        memberType: true,
+      },
+    },
+    posts: true,
+  },
+});
+
+
+export type UserWithProfileAndPosts = Prisma.UserGetPayload<typeof userWithEverything>;
 
 export const GraphQLMemberTypeId = new GraphQLEnumType({
   name: 'MemberTypeId',
@@ -35,9 +50,9 @@ export const PostType = new GraphQLObjectType({
   },
 });
 
-export const UserType = new GraphQLObjectType({
+export const UserType = new GraphQLObjectType<UserWithProfileAndPosts, { prisma: PrismaClient }>({
   name: 'User',
-  fields: () => ({
+  fields: (): GraphQLFieldConfigMap<UserWithProfileAndPosts, { prisma: PrismaClient }>  => ({
     id: { type: new GraphQLNonNull(UUIDType) },
     name: { type: new GraphQLNonNull(GraphQLString) },
     balance: { type: new GraphQLNonNull(GraphQLFloat) },
