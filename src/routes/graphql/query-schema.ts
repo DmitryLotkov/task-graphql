@@ -1,4 +1,4 @@
-import { GraphQLSchema, GraphQLObjectType, GraphQLList, GraphQLNonNull, GraphQLString } from 'graphql/index.js';
+import { GraphQLSchema, GraphQLObjectType, GraphQLList, GraphQLNonNull } from 'graphql/index.js';
 import { MemberType, PostType, UserType, ProfileType, GraphQLMemberTypeId } from './types/query-types.js';
 import { PrismaClient, Prisma } from '@prisma/client';
 import { DefaultArgs } from '@prisma/client/runtime/library.js';
@@ -19,12 +19,12 @@ export const createQueryScheme = (prisma: PrismaClient<Prisma.PrismaClientOption
         memberType: {
           type: MemberType,
           args: {
-            memberTypeId: { type: new GraphQLNonNull(GraphQLMemberTypeId) }
+            id: { type: new GraphQLNonNull(GraphQLMemberTypeId) }
           },
-          resolve: async (_src, args: { memberTypeId: MemberTypeId }) => {
+          resolve: async (_src, args: { id: MemberTypeId }) => {
             return prisma.memberType.findUnique({
               where: {
-                id: args.memberTypeId
+                id: args.id
               }
             })
           }
@@ -38,12 +38,12 @@ export const createQueryScheme = (prisma: PrismaClient<Prisma.PrismaClientOption
         post: {
           type: PostType,
           args: {
-            postId: { type: new GraphQLNonNull(UUIDType)}
+            id: { type: new GraphQLNonNull(UUIDType)}
           },
-          resolve: async (_src, args: { postId: string }) => {
+          resolve: async (_src, args: { id: string }) => {
               return prisma.post.findUnique({
                 where: {
-                  id : args.postId
+                  id : args.id
                 }
               })
           }
@@ -57,11 +57,11 @@ export const createQueryScheme = (prisma: PrismaClient<Prisma.PrismaClientOption
         user: {
           type: UserType,
           args: {
-            userId: { type: new GraphQLNonNull(UUIDType) },
+            id: { type: new GraphQLNonNull(UUIDType) },
           },
-          resolve: async (_src, args: { userId: string }) => {
+          resolve: async (_src, args: { id: string }) => {
             return prisma.user.findUnique({
-              where: { id: args.userId },
+              where: { id: args.id },
             });
           },
         },
@@ -74,11 +74,11 @@ export const createQueryScheme = (prisma: PrismaClient<Prisma.PrismaClientOption
         profile: {
           type: ProfileType,
           args: {
-            profileId: { type: new GraphQLNonNull(UUIDType) },
+            id: { type: new GraphQLNonNull(UUIDType) },
           },
-          resolve: async (_src, args: { profileId: string }) => {
+          resolve: async (_src, args: { id: string }) => {
             return prisma.profile.findUnique({
-              where: { id: args.profileId },
+              where: { id: args.id },
             });
           },
         },
