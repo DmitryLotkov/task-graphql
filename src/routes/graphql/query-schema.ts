@@ -1,19 +1,31 @@
 import { GraphQLSchema, GraphQLObjectType, GraphQLList, GraphQLNonNull } from 'graphql/index.js';
 import { MemberType, PostType, UserType, ProfileType, GraphQLMemberTypeId } from './types/query-types.js';
-import { PrismaClient, Prisma } from '@prisma/client';
-import { DefaultArgs } from '@prisma/client/runtime/library.js';
+import { PrismaClient, Prisma} from '@prisma/client';
 import { MemberTypeId } from '../member-types/schemas.js';
 import { UUIDType } from './types/uuid.js';
 
-export const createQueryScheme = (prisma: PrismaClient<Prisma.PrismaClientOptions, never, DefaultArgs>)  => {
+const userWithProfileAndPosts = Prisma.validator<Prisma.UserDefaultArgs>()({
+  include: {
+    profile: {
+      include: {
+        memberType: true,
+      },
+    },
+    posts: true,
+  },
+});
+
+type UserWithProfileAndPosts = Prisma.UserGetPayload<typeof userWithProfileAndPosts>;
+
+export const createQueryScheme = ()  => {
   return new GraphQLSchema({
     query: new GraphQLObjectType({
       name: "RootQuery",
       fields: {
         memberTypes: {
           type: new GraphQLList(MemberType),
-          resolve: async () => {
-            return prisma.memberType.findMany();
+          resolve: async (_src, args: { id: string }, context: { prisma: PrismaClient }) => {
+            return context.prisma.memberType.findMany();
           },
         },
         memberType: {
@@ -21,37 +33,37 @@ export const createQueryScheme = (prisma: PrismaClient<Prisma.PrismaClientOption
           args: {
             id: { type: new GraphQLNonNull(GraphQLMemberTypeId) }
           },
-          resolve: async (_src, args: { id: MemberTypeId }) => {
-            return prisma.memberType.findUnique({
+          resolve: async (_src, args: { id: MemberTypeId }, context: { prisma: PrismaClient }) => {
+            return context.prisma.memberType.findUnique({
               where: {
                 id: args.id
               }
-            })
+            }) ?? null
           }
         },
         posts: {
           type: new GraphQLList(PostType),
-          resolve: async () => {
-            return prisma.post.findMany();
+          resolve: async (_src, _, context: { prisma: PrismaClient }) => {
+            return context.prisma.post.findMany();
           },
         },
         post: {
           type: PostType,
           args: {
-            id: { type: new GraphQLNonNull(UUIDType)}
+            id: { type: new GraphQLNonNull(UUIDType) }
           },
-          resolve: async (_src, args: { id: string }) => {
-              return prisma.post.findUnique({
-                where: {
-                  id : args.id
-                }
+          resolve: async (_src, args: { id: string }, context: { prisma: PrismaClient }) => {
+            return (
+              await context.prisma.post.findUnique({
+                where: { id: args.id }
               })
+            ) ?? null;
           }
         },
         users: {
           type: new GraphQLList(UserType),
-          resolve: async () => {
-            return prisma.user.findMany();
+          resolve: async (_src, _, context: { prisma: PrismaClient }) => {
+            return context.prisma.user.findMany();
           },
         },
         user: {
@@ -59,16 +71,22 @@ export const createQueryScheme = (prisma: PrismaClient<Prisma.PrismaClientOption
           args: {
             id: { type: new GraphQLNonNull(UUIDType) },
           },
-          resolve: async (_src, args: { id: string }) => {
-            return prisma.user.findUnique({
+          resolve: async (_src, args: { id: string }, context: { prisma: PrismaClient }): Promise<UserWithProfileAndPosts | null> => {
+            return context.prisma.user.findUnique({
               where: { id: args.id },
-            });
-          },
+              include: {
+                profile: {
+                  include: { memberType: true },
+                },
+                posts: true,
+              },
+            }) ?? null;
+          }
         },
         profiles: {
           type: new GraphQLList(ProfileType),
-          resolve: async () => {
-            return prisma.profile.findMany();
+          resolve: async (_src, _, context: { prisma: PrismaClient }) => {
+            return context.prisma.profile.findMany();
           },
         },
         profile: {
@@ -76,10 +94,12 @@ export const createQueryScheme = (prisma: PrismaClient<Prisma.PrismaClientOption
           args: {
             id: { type: new GraphQLNonNull(UUIDType) },
           },
-          resolve: async (_src, args: { id: string }) => {
-            return prisma.profile.findUnique({
-              where: { id: args.id },
-            });
+          resolve: async (_src, args: { id: string }, context: { prisma: PrismaClient }) => {
+            return (
+              await context.prisma.profile.findUnique({
+                where: { id: args.id },
+              })
+            ) ?? null;
           },
         },
       }
