@@ -4,8 +4,9 @@ import {
   GraphQLNonNull,
   GraphQLFloat,
   GraphQLInt,
-  GraphQLString, GraphQLBoolean,
+  GraphQLBoolean,
 } from 'graphql/index.js';
+import { UUIDType } from './uuid.js';
 
 export const GraphQLMemberTypeId = new GraphQLEnumType({
   name: 'MemberTypeId',
@@ -27,17 +28,17 @@ export const MemberType = new GraphQLObjectType({
 export const PostType = new GraphQLObjectType({
   name: 'Post',
   fields: {
-    id: { type: new GraphQLNonNull(GraphQLString) },
-    title: { type: new GraphQLNonNull(GraphQLString) },
-    content: { type: new GraphQLNonNull(GraphQLString) },
+    id: { type: new GraphQLNonNull(UUIDType) },
+    title: { type: new GraphQLNonNull(UUIDType) },
+    content: { type: new GraphQLNonNull(UUIDType) },
   },
 });
 
 export const UserType = new GraphQLObjectType({
   name: 'User',
   fields: {
-    id: { type: new GraphQLNonNull(GraphQLString) },
-    name: { type: new GraphQLNonNull(GraphQLString) },
+    id: { type: new GraphQLNonNull(UUIDType) },
+    name: { type: new GraphQLNonNull(UUIDType) },
     balance: { type: new GraphQLNonNull(GraphQLFloat) },
   },
 });
@@ -45,10 +46,10 @@ export const UserType = new GraphQLObjectType({
 export const ProfileType = new GraphQLObjectType({
   name: 'Profile',
   fields: {
-    id: { type: new GraphQLNonNull(GraphQLString) },
+    id: { type: new GraphQLNonNull(UUIDType) },
     isMale: { type: new GraphQLNonNull(GraphQLBoolean) },
     yearOfBirth: { type: new GraphQLNonNull(GraphQLInt) },
-    userId: { type: new GraphQLNonNull(GraphQLString)},
+    userId: { type: new GraphQLNonNull(UUIDType)},
     memberTypeId: { type: new GraphQLNonNull(GraphQLMemberTypeId)}
   },
 });
