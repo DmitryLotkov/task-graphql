@@ -4,6 +4,9 @@ import {
   graphql,
 } from 'graphql';
 import { createScheme } from './root-schema.js';
+import depthLimit from 'graphql-depth-limit';
+import { parse, validate } from 'graphql';
+
 const plugin: FastifyPluginAsyncTypebox = async (fastify) => {
   const { prisma } = fastify;
 
@@ -23,13 +26,27 @@ const plugin: FastifyPluginAsyncTypebox = async (fastify) => {
         });
         return;
       }
+      const scheme = createScheme()
 
-      return await graphql({
-        schema: createScheme(),
-        source: req.body.query,
-        variableValues: req.body.variables,
-        contextValue: { prisma },
-      });
+      try {
+        const ast = parse(req.body.query)
+
+        const validationErrors = validate(scheme, ast, [depthLimit(5)])
+
+        if (validationErrors.length > 0) {
+          return reply.status(400).send({ errors: validationErrors });
+        }
+
+        return await graphql({
+          schema: scheme,
+          source: req.body.query,
+          variableValues: req.body.variables,
+          contextValue: { prisma },
+        });
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        return reply.status(400).send({ errors: [{ message }] });
+      }
     },
   });
 };
