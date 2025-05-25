@@ -27,6 +27,22 @@ export interface ProfileBody {
   memberTypeId: MemberTypeId
 }
 
+export interface ChangePostBody {
+  title: string
+  content: string
+}
+
+export interface ChangeProfileBody {
+  isMale: boolean
+  yearOfBirth: number
+  memberTypeId: MemberTypeId
+}
+
+export interface ChangeUserBody {
+  name: string
+  balance: number
+}
+
 export type Context = { prisma: PrismaClient }
 
 export const CreatePostInputType = new GraphQLInputObjectType ({
@@ -56,4 +72,28 @@ export const CreateProfileInputType = new GraphQLInputObjectType({
   }
 })
 
+export const ChangePostInputType = new GraphQLInputObjectType({
+  name: 'ChangePostInput',
+  fields: {
+    title: { type: GraphQLString },
+    content: { type: GraphQLString }
+  }
+})
 
+export const ChangeProfileInputType = new GraphQLInputObjectType({
+  name: 'ChangeProfileInput',
+  fields: {
+    isMale: { type: GraphQLBoolean },
+    yearOfBirth: { type: GraphQLInt },
+    memberTypeId: { type: GraphQLMemberTypeId },
+    userId: { type: UUIDType },
+  }
+})
+
+export const ChangeUserInputType = new GraphQLInputObjectType({
+  name: 'ChangeUserInput',
+  fields: {
+    name: { type: GraphQLString },
+    balance: { type: GraphQLFloat }
+  }
+})
