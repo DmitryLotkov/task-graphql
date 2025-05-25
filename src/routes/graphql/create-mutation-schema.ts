@@ -157,8 +157,8 @@ export const createMutationSchema: () => GraphQLObjectType<
           return context.prisma.post.update({
             where: { id: args.id },
             data: {
-              title: args.dto.title,
-              ...(args.dto.content !== undefined && { content: args.dto.content }),
+              title: args?.dto.title,
+              content: args?.dto.content,
             },
           });
         },
@@ -167,9 +167,9 @@ export const createMutationSchema: () => GraphQLObjectType<
         type: ProfileType,
         args: {
           id: { type: new GraphQLNonNull(UUIDType) },
-          dto: { type: new GraphQLNonNull(ChangeProfileInputType)}
+          dto: { type: new GraphQLNonNull(ChangeProfileInputType) }
         },
-        resolve: async (_src, args: { id:string, dto: ChangeProfileBody}, context: Context) => {
+        resolve: async (_src, args: { id: string, dto: ChangeProfileBody }, context: Context) => {
           const isExisting = await context.prisma.profile.findUnique({
             where: { id: args.id }
           })
@@ -181,9 +181,9 @@ export const createMutationSchema: () => GraphQLObjectType<
           return context.prisma.profile.update({
             where: { id: args.id },
             data: {
-              isMale: args.dto.isMale,
-              yearOfBirth: args.dto.yearOfBirth,
-              memberTypeId: args.dto.memberTypeId
+              isMale: args.dto?.isMale,
+              yearOfBirth: args?.dto.yearOfBirth,
+              memberTypeId: args?.dto.memberTypeId
             }
           })
         }
@@ -192,9 +192,9 @@ export const createMutationSchema: () => GraphQLObjectType<
         type: UserType,
         args: {
           id: { type: new GraphQLNonNull(UUIDType) },
-          dto: { type: new GraphQLNonNull(ChangeUserInputType)}
+          dto: { type: new GraphQLNonNull(ChangeUserInputType) }
         },
-        resolve: async (_src, args: { id:string, dto: ChangeUserBody}, context: Context) => {
+        resolve: async (_src, args: { id: string, dto: ChangeUserBody }, context: Context) => {
           const isExisting = await context.prisma.user.findUnique({
             where: { id: args.id }
           })
@@ -206,14 +206,71 @@ export const createMutationSchema: () => GraphQLObjectType<
           return context.prisma.user.update({
             where: { id: args.id },
             data: {
-              name: args.dto.name,
-              balance: args.dto.balance
+              name: args.dto?.name,
+              balance: args.dto?.balance
             }
           })
         }
       },
+      subscribeTo: {
+        type: new GraphQLNonNull(GraphQLString),
+        args: {
+          userId: { type: new GraphQLNonNull(UUIDType) },
+          authorId: { type: new GraphQLNonNull(UUIDType) }
+        },
+        resolve: async (_src, args: { userId: string, authorId: string }, context: Context) => {
+          const isExisting = await context.prisma.subscribersOnAuthors.findFirst({
+            where: {
+              subscriberId: args.userId,
+              authorId: args.authorId,
+            },
+          })
 
-    },
+          if (isExisting) {
+            throw new GraphQLError(`Already subscribed`);
+          }
+
+          await context.prisma.subscribersOnAuthors.create({
+            data: {
+              subscriberId: args.userId,
+              authorId: args.authorId,
+            },
+          });
+
+          return `User ${args.userId} subscribed to ${args.authorId}`;
+        }
+      },
+      unsubscribeFrom: {
+        type: new GraphQLNonNull(GraphQLString),
+        args: {
+          userId: { type: new GraphQLNonNull(UUIDType) },
+          authorId: { type: new GraphQLNonNull(UUIDType) }
+        },
+        resolve: async (_src, args: { userId: string; authorId: string }, context: Context) => {
+          const isExisting = await context.prisma.subscribersOnAuthors.findFirst({
+            where: {
+              subscriberId: args.userId,
+              authorId: args.authorId,
+            },
+          });
+
+          if (!isExisting) {
+            throw new GraphQLError(`Subscription does not exist`);
+          }
+
+          await context.prisma.subscribersOnAuthors.delete({
+            where: {
+              subscriberId_authorId: {
+                subscriberId: args.userId,
+                authorId: args.authorId,
+              },
+            },
+          });
+
+          return `Unsubscribed successfully`;
+        }
+      }
+    }
   });
 };
 
