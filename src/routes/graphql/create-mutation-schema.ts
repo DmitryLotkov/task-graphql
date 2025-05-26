@@ -9,7 +9,6 @@ import {
   CreatePostInputType,
   CreateUserInputType,
   CreateProfileInputType,
-  Context,
   PostBody,
   UserBody,
   ProfileBody,
@@ -17,6 +16,7 @@ import {
   ChangePostBody, ChangeProfileInputType, ChangeProfileBody, ChangeUserInputType, ChangeUserBody,
 } from './types/mutation-types.js';
 import { UUIDType } from './types/uuid.js';
+import { Context } from './types/context-type.js';
 
 export const createMutationSchema: () => GraphQLObjectType<
   Record<string, never>,

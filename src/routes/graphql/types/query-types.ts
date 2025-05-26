@@ -4,11 +4,16 @@ import {
   GraphQLNonNull,
   GraphQLFloat,
   GraphQLInt,
-  GraphQLBoolean, GraphQLList, GraphQLString, GraphQLFieldConfigMap,
+  GraphQLBoolean,
+  GraphQLList,
+  GraphQLString,
+  GraphQLFieldConfigMap,
 } from 'graphql/index.js';
 import { UUIDType } from './uuid.js';
-import { PrismaClient, User, Profile } from '@prisma/client';
 import { Prisma } from '@prisma/client';
+import { Context } from './context-type.js';
+import {User, Profile } from '@prisma/client';
+import { MemberTypeId } from '../../member-types/schemas.js';
 
 const userWithEverything = Prisma.validator<Prisma.UserDefaultArgs>()({
   include: {
@@ -21,7 +26,11 @@ const userWithEverything = Prisma.validator<Prisma.UserDefaultArgs>()({
   },
 });
 
+export const profileWithMemberType = Prisma.validator<Prisma.ProfileDefaultArgs>()({
+  include: { memberType: true },
+});
 
+export type ProfileWithMemberType = Prisma.ProfileGetPayload<typeof profileWithMemberType>;
 export type UserWithProfileAndPosts = Prisma.UserGetPayload<typeof userWithEverything>;
 
 export const GraphQLMemberTypeId = new GraphQLEnumType({
@@ -50,60 +59,51 @@ export const PostType = new GraphQLObjectType({
   },
 });
 
-export const UserType = new GraphQLObjectType<UserWithProfileAndPosts, { prisma: PrismaClient }>({
-  name: 'User',
-  fields: (): GraphQLFieldConfigMap<UserWithProfileAndPosts, { prisma: PrismaClient }>  => ({
-    id: { type: new GraphQLNonNull(UUIDType) },
-    name: { type: new GraphQLNonNull(GraphQLString) },
-    balance: { type: new GraphQLNonNull(GraphQLFloat) },
-    profile: {
-      type: ProfileType,
-    },
-    userSubscribedTo: {
-      type: new GraphQLList(UserType),
-      resolve: async (user: User, _args, context: { prisma: PrismaClient }): Promise<User[]> => {
-        const subs = await context.prisma.subscribersOnAuthors.findMany({
-          where: { subscriberId: user.id },
-          include: { author: true },
-        });
-        return subs.map((s) => s.author);
-      },
-    },
-    subscribedToUser: {
-      type: new GraphQLList(UserType),
-      resolve: async (user: User, _args, context: { prisma: PrismaClient }) => {
-        const subs = await context.prisma.subscribersOnAuthors.findMany({
-          where: { authorId: user.id },
-          include: { subscriber: true },
-        });
-        return subs.map((s) => s.subscriber);
-      },
-    },
-
-    posts: {
-      type: new GraphQLList(PostType),
-      resolve: (user: User, _args, context: { prisma: PrismaClient }) => {
-        return context.prisma.post.findMany({ where: { authorId: user.id } });
-      },
-    },
-  }),
-});
-
-export const ProfileType = new GraphQLObjectType({
+export const ProfileType = new GraphQLObjectType<ProfileWithMemberType, Context>({
   name: 'Profile',
   fields: {
     id: { type: new GraphQLNonNull(UUIDType) },
     isMale: { type: new GraphQLNonNull(GraphQLBoolean) },
     yearOfBirth: { type: new GraphQLNonNull(GraphQLInt) },
-    userId: { type: new GraphQLNonNull(UUIDType)},
-    memberTypeId: { type: new GraphQLNonNull(GraphQLMemberTypeId)},
+    userId: { type: new GraphQLNonNull(UUIDType) },
+    memberTypeId: { type: new GraphQLNonNull(GraphQLMemberTypeId) },
     memberType: {
       type: MemberType,
-      resolve: async (profile: Profile, _args, context: { prisma: PrismaClient }) => {
-        return context.prisma.memberType.findUnique({
-          where: { id: profile.memberTypeId },
-        });
-      },
+      resolve: (profile: Profile, _args, context:Context) =>
+        context.loaders.memberTypesById.load(profile.memberTypeId as MemberTypeId),
     },
   },
+});
+
+export const UserType = new GraphQLObjectType<UserWithProfileAndPosts, Context>({
+  name: 'User',
+  fields: (): GraphQLFieldConfigMap<UserWithProfileAndPosts, Context> => ({
+    id: { type: new GraphQLNonNull(UUIDType) },
+    name: { type: new GraphQLNonNull(GraphQLString) },
+    balance: { type: new GraphQLNonNull(GraphQLFloat) },
+
+    profile: {
+      type: ProfileType,
+      resolve: (user:User, _args, context:Context) =>
+        context.loaders.userProfile.load(user.id),
+    },
+
+    posts: {
+      type: new GraphQLList(PostType),
+      resolve: (user:User, _args, context:Context) =>
+        context.loaders.userPosts.load(user.id),
+    },
+
+    userSubscribedTo: {
+      type: new GraphQLList(UserType),
+      resolve: (user:User, _args, context:Context) =>
+        context.loaders.userSubscribedTo.load(user.id),
+    },
+
+    subscribedToUser: {
+      type: new GraphQLList(UserType),
+      resolve: (user:User, _args, context:Context) =>
+        context.loaders.subscribedToUser.load(user.id),
+    },
+  }),
 });

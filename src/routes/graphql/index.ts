@@ -6,6 +6,8 @@ import {
 import { createScheme } from './root-schema.js';
 import depthLimit from 'graphql-depth-limit';
 import { parse, validate } from 'graphql';
+import type { DocumentNode } from 'graphql/language/ast.js';
+import { createLoaders } from './create-loaders.js';
 
 const plugin: FastifyPluginAsyncTypebox = async (fastify) => {
   const { prisma } = fastify;
@@ -29,19 +31,25 @@ const plugin: FastifyPluginAsyncTypebox = async (fastify) => {
       const scheme = createScheme()
 
       try {
-        const ast = parse(req.body.query)
+        const queryString = String(req.body.query);
+        const documentAST: DocumentNode = parse(queryString);
 
-        const validationErrors = validate(scheme, ast, [depthLimit(5)])
+        const validationErrors = validate(scheme, documentAST, [depthLimit(5)])
 
         if (validationErrors.length > 0) {
           return reply.status(400).send({ errors: validationErrors });
         }
 
+        const loaders = createLoaders(prisma);
+
         return await graphql({
           schema: scheme,
           source: req.body.query,
           variableValues: req.body.variables,
-          contextValue: { prisma },
+          contextValue: {
+            prisma,
+            loaders,
+          },
         });
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Unknown error';

@@ -7,7 +7,6 @@ import {
 import { UUIDType } from './uuid.js';
 import { GraphQLMemberTypeId } from './query-types.js';
 import { MemberTypeId } from '../../member-types/schemas.js';
-import { PrismaClient } from '@prisma/client';
 
 export interface PostBody {
   title: string;
@@ -42,8 +41,6 @@ export interface ChangeUserBody {
   name: string
   balance: number
 }
-
-export type Context = { prisma: PrismaClient }
 
 export const CreatePostInputType = new GraphQLInputObjectType ({
   name: 'CreatePostInput',
